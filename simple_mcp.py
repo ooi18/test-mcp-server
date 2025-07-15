@@ -6,27 +6,48 @@ from mcp.types import Tool, TextContent
 async def main():
     server = Server("SimpleLowLevelServer")
 
+    # Tool 1: "echo"
     ECHO = Tool(
         name="echo",
-        description="Echo a text message",
+        description="Always returns a fixed message.",
         inputSchema={
             "type": "object",
-            "properties": {"text": {"type": "string"}},
-            "required": ["text"]
+            "properties": {},
+            "required": []
+        }
+    )
+
+    # Tool 2: "echo_something"
+    ECHO_SOMETHING = Tool(
+        name="echo_something",
+        description="Returns 'Hello <something>' where <something> is your input.",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "something": {
+                    "type": "string",
+                    "description": "Text to include in the hello message"
+                }
+            },
+            "required": ["something"]
         }
     )
 
     @server.list_tools()
     async def list_tools():
-        return [ECHO]
+        # List both tools
+        return [ECHO, ECHO_SOMETHING]
 
     @server.call_tool()
     async def call_tool(name: str, args: dict):
-        if name != "echo":
+        if name == "echo":
+            return [TextContent(type="text", text="Hello from the simple MCP server!")]
+        elif name == "echo_something":
+            something = args.get("something", "")
+            return [TextContent(type="text", text=f"Hello {something}")]
+        else:
             raise ValueError(f"Unknown tool: {name}")
-        return [TextContent(type="text", text="Hello from the simple MCP server!")]
 
-    # Proper stdio server usage as per the official repo
     options = server.create_initialization_options()
     async with stdio_server() as (read_stream, write_stream):
         await server.run(read_stream, write_stream, options)
